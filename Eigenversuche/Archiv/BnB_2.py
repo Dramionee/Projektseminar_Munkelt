@@ -2,9 +2,6 @@ import heapq
 import math
 from copy import deepcopy
 
-# ------------------------------------------------------------
-#  Branch & Bound for 3×3 Job Shop Scheduling
-# ------------------------------------------------------------
 
 class Node:
     def __init__(self, job_next_op, machine_ready, job_ready, schedule, makespan, lb):
@@ -19,9 +16,6 @@ class Node:
         return self.lb < other.lb
 
 
-# ------------------------------------------------------------
-# Lower Bound: max(critical path per job, per machine)
-# ------------------------------------------------------------
 
 def compute_lower_bound(jobs, node):
     n_jobs = len(jobs)

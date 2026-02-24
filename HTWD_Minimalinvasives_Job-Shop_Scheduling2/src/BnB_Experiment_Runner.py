@@ -10,7 +10,6 @@ from src.simulation.ProductionSimulation import ProductionSimulation
 
 from src.solvers.heuristics.BNB_Scheduler import Scheduler as BNBScheduler
 
-
 def run_experiment(
     experiment_id: int,
     shift_length: int,
@@ -20,9 +19,7 @@ def run_experiment(
     sim_sigma: float,
     bnb_params: Dict[str, Any],
 ) -> None:
-    """
-    Führt EIN Experiment (experiment_id) über total_shift_number Shifts aus.
-    """
+    # EIN Experiment
     simulation = ProductionSimulation(verbose=False)
 
     jobs = JobQuery.get_by_source_name_max_util_and_lt_arrival(

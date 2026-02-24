@@ -1,7 +1,8 @@
-# tiefensuche
-
+# macht 6x6 gut, 10x10 bricht es sich das Genick wird nicht fertig
+# aber ansatz nach startzeit selbst zu sortieren sieht gut auS
 import time
 import matplotlib.pyplot as plt
+
 
 auftraege = [
     [(0,29),(1,78),(2,9),(3,36),(4,49),(5,11),(6,62),(7,56),(8,44),(9,21)],
@@ -20,13 +21,22 @@ anzahl_auftraege = len(auftraege)
 anzahl_maschinen = 1 + max(m for job in auftraege for m, _ in job)
 maschinenfarben = ['tab:blue','tab:orange','tab:green','tab:red','tab:olive','tab:purple','tab:grey','tab:cyan']
 
+# restliche Bearbeitungszeit je Job und Index vorrechnen
+restzeit_job = [
+    [sum(d for _, d in job[i:]) for i in range(len(job)+1)]
+    for job in auftraege
+]
+
 def branch_and_bound_with_memo_and_progress():
     za = [0]*anzahl_auftraege
     zm = [0]*anzahl_maschinen
     idx = [0]*anzahl_auftraege
 
-    best = float('inf')
+    best = 9999
     plan = []
+    cutted = 0
+
+    print(f">>> Startlösung (Giffler–Thompson): Makespan={best}")
     visited = {}
 
     q = []
@@ -36,11 +46,11 @@ def branch_and_bound_with_memo_and_progress():
     last_status = start_time
     nodes = 0
 
-    def state_key(idx, zm):
-        return tuple(idx), tuple(zm)
+    def state_key(idx):
+        return tuple(idx)
 
     while q:
-        g, za, zm, idx, p, ms = q.pop()  # LIFO Entnahme
+        g, za, zm, idx, p, ms = q.pop()
         nodes += 1
 
         now = time.time()
@@ -49,35 +59,34 @@ def branch_and_bound_with_memo_and_progress():
             last_status = now
 
         if g >= best:
+            cutted+=1
             continue
 
-        sk = state_key(idx, zm)
+        sk = state_key(idx)
         if sk in visited and visited[sk] <= g:
             continue
         visited[sk] = g
 
         if all(idx[i] == len(auftraege[i]) for i in range(anzahl_auftraege)):
             runtime = now - start_time
-            print(f">>> [Lösung] Makespan={ms} (bisher Optimum={best}) nach {runtime:.1f}s, {nodes} Knoten")
+            print(f">>> [Lösung] Makespan={ms} (bisher Optimum={best}) nach {runtime:.1f}s, {nodes} Knoten, Cutted={cutted}")
             if ms < best:
                 best, plan = ms, p
             continue
         
-        # sortierung nächste operationen nach kleinster startzeit und nimmt dann nur die zum weiter branchen
+        # alle möglichen nächsten Operationen sammeln
         candidates = []
-        min_s = float('9999')
 
         for a in range(anzahl_auftraege):
             if idx[a] < len(auftraege[a]):
                 m, d = auftraege[a][idx[a]]
                 s = max(za[a], zm[m])
-                if s < min_s:
-                    candidates = [(a, m, d, s)]
-                    min_s = s
-                elif s == min_s:
-                    candidates.append((a, m, d, s))
+                candidates.append((a, m, d, s))
 
-        for (a, m, d, s) in candidates:
+        # nur Suchordnung: kleinste Startzeit zuerst
+        candidates.sort(key=lambda x: (x[3], -x[2]))
+
+        for (a, m, d, s) in reversed(candidates):
 
                 m, d = auftraege[a][idx[a]]
                 s = max(za[a], zm[m])
@@ -86,13 +95,20 @@ def branch_and_bound_with_memo_and_progress():
                 idx2[a] += 1
                 ms2 = max(ms, s + d)
 
-                ra = max(za2[j] + sum(dd for _, dd in auftraege[j][idx2[j]:]) for j in range(anzahl_auftraege))
+                ra = max(
+                    za2[j] + restzeit_job[j][idx2[j]]
+                    for j in range(anzahl_auftraege)
+                )
                 rm = max(zm2[i] + sum(dd for j in range(anzahl_auftraege)
                                       for mi, dd in auftraege[j][idx2[j]:] if mi == i)
                          for i in range(anzahl_maschinen))
 
                 g2 = max(ms2, ra, rm)
-                q.append((g2, za2, zm2, idx2, p + [(a, m, s, d)], ms2))
+        
+                if g2 < best:
+                    q.append((g2, za2, zm2, idx2, p + [(a, m, s, d)], ms2))
+                else:
+                    cutted+=1
 
     print(f"\nFERTIG. Optimum: {best}. Gesamtknoten: {nodes}. Laufzeit: {time.time()-start_time:.1f} Sekunden.")
 

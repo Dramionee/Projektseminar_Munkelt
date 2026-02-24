@@ -1,7 +1,8 @@
+# normaler code mit heap, scheitert schon am 6x6
 
+import heapq
 import time
 import matplotlib.pyplot as plt
-
 
 auftraege = [
 [(2,1), (0,3), (1,6), (3,7), (2,3), (4,6)],
@@ -16,35 +17,28 @@ anzahl_auftraege = len(auftraege)
 anzahl_maschinen = 1 + max(m for job in auftraege for m, _ in job)
 maschinenfarben = ['tab:blue','tab:orange','tab:green','tab:red','tab:olive','tab:purple','tab:grey','tab:cyan']
 
-# restliche Bearbeitungszeit je Job und Index vorrechnen
-restzeit_job = [
-    [sum(d for _, d in job[i:]) for i in range(len(job)+1)]
-    for job in auftraege
-]
-
 def branch_and_bound_with_memo_and_progress():
     za = [0]*anzahl_auftraege
     zm = [0]*anzahl_maschinen
     idx = [0]*anzahl_auftraege
 
-    best = 9999
+    best = float('inf')
     plan = []
-    cutted = 0
-
-    print(f">>> Startlösung (Giffler–Thompson): Makespan={best}")
     visited = {}
 
     q = []
+    #heapq.heappush(q, (0, za, zm, idx, [], 0))
     q.append((0, za, zm, idx, [], 0))
 
     start_time = time.time()
     last_status = start_time
     nodes = 0
 
-    def state_key(idx):
-        return tuple(idx)
+    def state_key(idx, zm):
+        return tuple(idx), tuple(zm)
 
     while q:
+        #g, za, zm, idx, p, ms = heapq.heappop(q)
         g, za, zm, idx, p, ms = q.pop()
         nodes += 1
 
@@ -54,56 +48,34 @@ def branch_and_bound_with_memo_and_progress():
             last_status = now
 
         if g >= best:
-            cutted+=1
             continue
 
-        sk = state_key(idx)
+        sk = state_key(idx, zm)
         if sk in visited and visited[sk] <= g:
             continue
         visited[sk] = g
 
-        if all(idx[i] == len(auftraege[i]) for i in range(anzahl_auftraege)):
+        if all(idx[i]==len(auftraege[i]) for i in range(anzahl_auftraege)):
             runtime = now - start_time
-            print(f">>> [Lösung] Makespan={ms} (bisher Optimum={best}) nach {runtime:.1f}s, {nodes} Knoten, Cutted={cutted}")
+            print(f">>> [Lösung] Makespan={ms} (bisher Optimum={best}) nach {runtime:.1f}s, {nodes} Knoten")
             if ms < best:
                 best, plan = ms, p
             continue
-        
-        # alle möglichen nächsten Operationen sammeln
-        candidates = []
 
         for a in range(anzahl_auftraege):
-            if idx[a] < len(auftraege[a]):
-                m, d = auftraege[a][idx[a]]
-                s = max(za[a], zm[m])
-                candidates.append((a, m, d, s))
-
-        # nur Suchordnung: kleinste Startzeit zuerst
-        candidates.sort(key=lambda x: (x[3], -x[2]))
-
-        for (a, m, d, s) in reversed(candidates):
-
-                m, d = auftraege[a][idx[a]]
+            if idx[a]<len(auftraege[a]):
+                m,d = auftraege[a][idx[a]]
                 s = max(za[a], zm[m])
                 za2, zm2, idx2 = za[:], zm[:], idx[:]
-                za2[a] = zm2[m] = s + d
+                za2[a] = zm2[m] = s+d
                 idx2[a] += 1
-                ms2 = max(ms, s + d)
-
-                ra = max(
-                    za2[j] + restzeit_job[j][idx2[j]]
-                    for j in range(anzahl_auftraege)
-                )
-                rm = max(zm2[i] + sum(dd for j in range(anzahl_auftraege)
-                                      for mi, dd in auftraege[j][idx2[j]:] if mi == i)
-                         for i in range(anzahl_maschinen))
-
+                ms2 = max(ms, s+d)
+                ra = max(za2[j]+sum(dd for _,dd in auftraege[j][idx2[j]:]) for j in range(anzahl_auftraege))
+                rm = max(zm2[i]+sum(dd for j in range(anzahl_auftraege) for mi,dd in auftraege[j][idx2[j]:] if mi==i) for i in range(anzahl_maschinen))
                 g2 = max(ms2, ra, rm)
-        
-                if g2 < best:
-                    q.append((g2, za2, zm2, idx2, p + [(a, m, s, d)], ms2))
-                else:
-                    cutted+=1
+                #print(f"ms2={ms2}, ra={ra}, rm={rm} => g2={g2}")
+                #heapq.heappush(q, (g2, za2, zm2, idx2, p+[(a,m,s,d)], ms2))
+                q.append((g2, za2, zm2, idx2, p + [(a, m, s, d)], ms2))
 
     print(f"\nFERTIG. Optimum: {best}. Gesamtknoten: {nodes}. Laufzeit: {time.time()-start_time:.1f} Sekunden.")
 
@@ -112,15 +84,16 @@ def branch_and_bound_with_memo_and_progress():
 if __name__ == "__main__":
     plan, makespan = branch_and_bound_with_memo_and_progress()
 
+    # Visualisierung der Lösung
     print("\n[Optimum]:")
     for a, m, s, d in plan:
-        print(f"  A{a+1} M{m+1} [{s}-{s+d}]")
+        print(f"  A{a+1} M{m+1} [{s}-{s+d}]")
 
     fig, ax = plt.subplots()
     for a, m, s, d in plan:
-        ax.broken_barh([(s, d)], (a*10, 9), facecolors=maschinenfarben[m % len(maschinenfarben)])
-        ax.text(s + d/2, a*10 + 4.5, f"M{m+1}", ha='center', va='center', color='white', fontsize=9)
-    ax.set_yticks([a*10 + 4.5 for a in range(anzahl_auftraege)])
+        ax.broken_barh([(s, d)], (a*10, 9), facecolors=maschinenfarben[m%len(maschinenfarben)])
+        ax.text(s+d/2, a*10+4.5, f"M{m+1}", ha='center', va='center', color='white', fontsize=9)
+    ax.set_yticks([a*10+4.5 for a in range(anzahl_auftraege)])
     ax.set_yticklabels([f"A{a+1}" for a in range(anzahl_auftraege)])
     ax.set_xlabel('Zeit')
     ax.set_title(f"Makespan = {makespan}")

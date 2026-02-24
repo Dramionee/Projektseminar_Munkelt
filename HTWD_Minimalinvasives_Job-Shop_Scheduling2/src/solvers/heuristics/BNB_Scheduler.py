@@ -4,9 +4,7 @@ from typing import Dict, Any, Optional, Tuple, List
 
 from src.domain.Collection import LiveJobCollection
 
-# Achtung: pyscipopt muss bei euch im Environment vorhanden sein
 from pyscipopt import Model
-
 
 class Scheduler:
     def __init__(
@@ -28,7 +26,6 @@ class Scheduler:
         self.jobs_collection.sort_jobs_by_id()
         self.jobs_collection.sort_operations()
 
-        # ops: (job_obj, op_index, machine_name, proc_time, op_obj)
         ops: List[Tuple[Any, int, str, int, Any]] = []
         for job in self.jobs_collection.values():
             for k, op in enumerate(job.operations):
@@ -41,11 +38,9 @@ class Scheduler:
 
         model = Model("JobShop_BNB")
 
-        # --- FIX: eindeutige int-Indizes statt job.id casten ---
         jobs_ordered = list(self.jobs_collection.values())
         jobs_ordered.sort(key=lambda j: str(getattr(j, "id", "")))
 
-        # LiveJob ist unhashable -> wir nutzen die string-id als Key
         job_idx_by_id = {str(job.id): idx for idx, job in enumerate(jobs_ordered)}
 
         # ------------------------------------------------------

@@ -15,7 +15,8 @@ from src.domain.Collection import LiveJobCollection
 
 # Solver
 from src.solvers.CP_Solver import Solver
-from src.solvers.bnb_solver import solve_bnb
+# Optional: native BnB solver import is performed lazily inside the bnb branch
+# to allow removing the module `src/solvers/bnb_solver.py` without import errors.
 
 output_path = "output"
 logger = Logger(log_file = f"{output_path}/projektseminar_CP_Makespan.log")

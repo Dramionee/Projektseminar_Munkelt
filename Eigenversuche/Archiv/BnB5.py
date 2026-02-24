@@ -1,4 +1,4 @@
-# komische chat methode, kommt auch auf 960 nach ca 2h
+# test mit c hat, kommt auch auf 960 nach ca 2h
 
 import time
 import matplotlib.pyplot as plt

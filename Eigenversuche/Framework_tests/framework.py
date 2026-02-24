@@ -38,9 +38,7 @@ zehn = [
     [(1,85),(0,13),(2,61),(6,7),(8,64),(9,76),(5,47),(3,52),(4,90),(7,45)]
 ]
 
-# --------------------
 # Daten auswählen
-# --------------------
 jobs = {j: zehn[j] for j in range(10)}
 machines = set(m for job in jobs.values() for m, _ in job)
 
@@ -52,9 +50,7 @@ for j, job in jobs.items():
     for k, (m, p) in enumerate(job):
         ops.append((j, k, m, p))
 
-# --------------------
 # Modell
-# --------------------
 model = Model("JobShop_BranchAndBound")
 
 S = {}
@@ -101,9 +97,7 @@ model.setParam("propagating/maxrounds", -1)
 # Konflikte: Standard
 model.setParam("conflict/enable", True)
 
-# --------------------
 # Speicher-Monitoring
-# --------------------
 process = psutil.Process(os.getpid())
 memory_log = []
 stop_monitor = False
@@ -119,9 +113,7 @@ def monitor_memory():
 
 monitor_thread = threading.Thread(target=monitor_memory, daemon=True)
 
-# --------------------
 # Lösen + Messung
-# --------------------
 time_start = time.time()
 monitor_thread.start()
 
@@ -147,9 +139,7 @@ for i in range(len(memory_log) - 1):
 avg_memory = area / total_time
 avg_memory_mb = avg_memory / (1024 ** 2)
 
-# --------------------
 # Ergebnisse
-# --------------------
 print("\n==============================")
 print("ERGEBNISSE")
 print("==============================")
@@ -158,9 +148,7 @@ print(f"Laufzeit: {elapsed_time:.2f} Sekunden")
 print(f"Peak RAM-Verbrauch: {peak_memory_mb:.2f} MB")
 print(f"Ø RAM (zeitgewichtet): {avg_memory_mb:.2f} MB")
 
-# --------------------
 # Gantt-Diagramm
-# --------------------
 solution_ops = []
 for j, k, m, p in ops:
     solution_ops.append({
