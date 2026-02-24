@@ -1,0 +1,120 @@
+import math
+from dataclasses import dataclass
+from collections import UserDict
+from typing import Optional, Tuple
+
+from ortools.sat.python import cp_model
+from src.domain.orm_models import JobOperation
+
+class CostVarCollection(list):
+    def __init__(self, weight=1):
+        super().__init__()
+        self.weight = weight
+
+    def set_weight(self, weight):
+        self.weight = weight
+
+    def add(self, var):
+        self.append(var)
+
+    def objective_expr(self):
+        return sum(self.weight * var for var in self)
+
+    def total_cost(self, solver):
+        return sum(self.weight * solver.Value(var) for var in self)
+
+
+
+class OperationIndexMapper(UserDict[Tuple[int, int], JobOperation]):
+    def add(self, job_idx: int, op_idx: int, operation: JobOperation):
+        self[(job_idx, op_idx)] = operation
+
+    def get_index_from_operation(self, operation: JobOperation) -> Optional[Tuple[int, int]]:
+        for index, op in self.items():
+            if op == operation:
+                return index
+        return None
+
+class StartTimes(UserDict):
+    def __setitem__(self, key: Tuple[int, int], value: cp_model.IntVar):
+        assert isinstance(value, cp_model.IntVar)
+        super().__setitem__(key, value)
+
+    def add(self, job_idx: int, op_idx: int, var: cp_model.IntVar):
+        self[(job_idx, op_idx)] = var
+
+
+class EndTimes(UserDict):
+    def __setitem__(self, key: Tuple[int, int], value: cp_model.IntVar):
+        assert isinstance(value, cp_model.IntVar)
+        super().__setitem__(key, value)
+
+    def add(self, job_idx: int, op_idx: int, var: cp_model.IntVar):
+        self[(job_idx, op_idx)] = var
+
+
+class Intervals(UserDict):
+    def __setitem__(self, key: Tuple[int, int], value: Tuple[cp_model.IntervalVar, str]):
+        interval, machine = value
+        assert isinstance(interval, cp_model.IntervalVar)
+        assert isinstance(machine, str)
+        super().__setitem__(key, value)
+
+    def add(self, job_idx: int, op_idx: int, interval: cp_model.IntervalVar, machine: str):
+        self[(job_idx, op_idx)] = (interval, machine)
+
+
+@dataclass
+class MachineFixInterval:
+    machine: str
+    start: int
+    end: int
+
+
+class MachineFixIntervalMap(UserDict):
+    def add_interval(self, machine: str, start: int, end: float):
+        """Set or replace fix interval information for a machine."""
+        self.data[machine] = MachineFixInterval(machine, start, int(math.ceil(end)))
+
+    def update_interval(self, machine: str, start: int, end: float):
+        """
+        Updates the fixed interval for a machine if the end is greater
+        than the current end value or if no entry exists.
+        """
+        current = self.data.get(machine)
+        if current is None or end > current.end:
+            self.data[machine] = MachineFixInterval(machine, start, int(math.ceil(end)))
+
+    def get_interval(self, machine: str) -> Optional[MachineFixInterval]:
+        return self.data.get(machine)
+
+
+@dataclass
+class JobDelay:
+    job_id: str
+    time_stamp: int
+
+
+class JobDelayMap(UserDict[str, JobDelay]):
+    def add_delay(self, job_id: str, time_stamp: float):
+        """Set or replace delay information for a job."""
+        self.data[job_id] = JobDelay(job_id, int(math.ceil(time_stamp)))
+
+    def update_delay(self, job_id: str, time_stamp: float):
+        """Only updates the time_stamp if it is larger than the current."""
+        current = self.data.get(job_id)
+        if current is None or time_stamp > current.time_stamp:
+            self.data[job_id] = JobDelay(job_id, int(math.ceil(time_stamp)))
+
+    def get_time(self, job_id: str, default: int = 0) -> int:
+        delay = self.data.get(job_id)
+        return delay.time_stamp if delay is not None else default
+
+
+class OriginalOperationStarts(UserDict[Tuple[int, int], int]):
+    def add(self, job_idx: int, op_idx: int, start: int):
+        self[(job_idx, op_idx)] = start
+
+
+
+
