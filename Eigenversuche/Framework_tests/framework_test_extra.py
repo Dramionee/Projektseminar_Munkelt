@@ -1,4 +1,4 @@
-# E0.1 Baseline, Standardkonfiguration, M = 10000 zum Vergleichen als Basis wie größeres M so ist
+# E0 Baseline, Standardkonfiguration, Gap = 0.20 (nur so)
 
 import matplotlib.pyplot as plt
 from pyscipopt import Model
@@ -44,9 +44,9 @@ zehn = [
 jobs = {j: zehn[j] for j in range(10)}
 machines = set(m for job in jobs.values() for m, _ in job)
 
-M = 1000  # Big-M
 
-# Operationen
+M = 1000
+
 ops = []
 for j, job in jobs.items():
     for k, (m, p) in enumerate(job):
@@ -90,20 +90,19 @@ for j, k, m, p in ops:
 
 model.setObjective(Cmax, "minimize")
 
-# Cuts: Standard (an)
+
 model.setParam("separating/maxrounds", -1)
 model.setParam("separating/maxroundsroot", -1)
-# Heuristiken: Standard (an)
+
 model.setHeuristics(True)
-# Presolve / Propagation: Standard
+
 model.setParam("presolving/maxrounds", -1)
 model.setParam("propagating/maxrounds", -1)
-# Konflikte: Standard
-model.setParam("conflict/enable", True)
 
-# --------------------
-# Speicher-Monitoring (KORRIGIERT)
-# --------------------
+model.setParam("conflict/enable", True)
+model.setParam("limits/gap", 0.28)
+
+# Speicher-Monitoring 
 process = psutil.Process(os.getpid())
 memory_log = []
 stop_monitor = False
@@ -122,13 +121,10 @@ def monitor_memory():
 
 monitor_thread = threading.Thread(
     target=monitor_memory,
-    daemon=False   # WICHTIG: nicht daemon!
+    daemon=False
 )
 
-
-# --------------------
 # Lösen + Messung
-# --------------------
 time_start = time.time()
 monitor_thread.start()
 
@@ -157,9 +153,7 @@ else:
     # Fallback: falls etwas schiefgeht
     avg_memory_mb = peak_memory_mb
 
-# --------------------
 # Ergebnisse
-# --------------------
 print("\n==============================")
 print("ERGEBNISSE")
 print("==============================")
@@ -168,9 +162,7 @@ print(f"Laufzeit: {elapsed_time:.2f} Sekunden")
 print(f"Peak RAM-Verbrauch: {peak_memory_mb:.2f} MB")
 print(f"Ø RAM (zeitgewichtet): {avg_memory_mb:.2f} MB")
 
-# --------------------
 # Gantt-Diagramm
-# --------------------
 solution_ops = []
 for j, k, m, p in ops:
     solution_ops.append({
@@ -203,11 +195,11 @@ def plot_gantt(operations):
     ax.set_title("Job-Shop Gantt-Diagramm Baseline_alles_standart (E0)")
     ax.grid(True, axis="x", linestyle="--", alpha=0.5)
     plt.tight_layout()
-    plt.savefig("Bilder/Diagramm Baseline_alles_standart(E0)1.png", dpi=300)
+    plt.savefig("Bilder/Diagramm Baseline_alles_standart(E0)gap20.png", dpi=300)
     print("Diagramm gespeichert als Baseline_alles_standart(E0).png")
 
 plot_gantt(solution_ops)
-
+# speicher
 def plot_memory_usage(memory_log):
     times = [t for t, _ in memory_log]
     mem_mb = [m / (1024 ** 2) for _, m in memory_log]
@@ -219,6 +211,6 @@ def plot_memory_usage(memory_log):
     plt.title("Speicherverbrauch über die Zeit (Branch & Bound) memory_usage_Baseline_alles_standart (E0)")
     plt.grid(True, linestyle="--", alpha=0.5)
     plt.tight_layout()
-    plt.savefig("Bilder/Speicher memory_usage_Baseline_alles_standart (E0)1.png", dpi=300)
+    plt.savefig("Bilder/Speicher memory_usage_Baseline_alles_standart (E0)gap20.png", dpi=300)
     print("Speicherverlauf gespeichert als: memory_usage_Baseline_alles_standart (E0).png")
 plot_memory_usage(memory_log)
