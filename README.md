@@ -8,3 +8,10 @@ darunter vor allem
 - run_single_bnb_experiment.py
 - src/BnB_Experiment_Runner.py
 - src/solvers/heuristics/BNB_Scheduler.py
+
+Für beide ORdner wird jeweils eine Venv gebraucht um die benötigten Abhängigkeiten zu installieren, für Eigenversuche:
+
+pip install pyscipopt matplotlib psutil
+
+Für HTWD_Minimalinvasives_Job-Shop_Scheduling2:
+pip install numpy pandas scipy matplotlib seaborn simpy pulp ortools pyscipopt editdistance sqlalchemy colorama yagmail python-dotenv tomli
